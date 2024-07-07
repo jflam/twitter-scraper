@@ -10,7 +10,11 @@ from tqdm import tqdm
 def scrape_likes(username, cookies, output_path, max_likes=100):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
+        # Create a high-DPI context
+        context = browser.new_context(
+            viewport={ 'width': 2560, 'height': 1440 },
+            device_scale_factor=1,
+        )
         
         # Set the cookies
         context.add_cookies(cookies)
@@ -50,7 +54,7 @@ def scrape_likes(username, cookies, output_path, max_likes=100):
                     
                     # Capture high-resolution screenshot of the article
                     screenshot_path = screenshots_dir / f"{tweet_id}.png"
-                    post.screenshot(path=str(screenshot_path), scale=2)  # Double the resolution
+                    post.screenshot(path=str(screenshot_path))
                     
                     likes.append({
                         'id': tweet_id,
