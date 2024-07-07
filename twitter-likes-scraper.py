@@ -5,6 +5,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
 import re
+from tqdm import tqdm
 
 def scrape_likes(username, cookies, output_path, max_likes=100):
     with sync_playwright() as p:
@@ -23,6 +24,9 @@ def scrape_likes(username, cookies, output_path, max_likes=100):
         # Create a directory for screenshots
         screenshots_dir = output_path.parent / 'screenshots'
         screenshots_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize progress bar
+        pbar = tqdm(total=max_likes, desc="Scraping likes")
         
         while len(likes) < max_likes:
             # Extract liked posts
@@ -44,18 +48,19 @@ def scrape_likes(username, cookies, output_path, max_likes=100):
                     text_element = post.query_selector('div[data-testid="tweetText"]')
                     timestamp_element = post.query_selector('time')
                     
-                    # Capture screenshot of the article
+                    # Capture high-resolution screenshot of the article
                     screenshot_path = screenshots_dir / f"{tweet_id}.png"
-                    post.screenshot(path=str(screenshot_path))
+                    post.screenshot(path=str(screenshot_path), scale=2)  # Double the resolution
                     
                     likes.append({
                         'id': tweet_id,
                         'username': tweet_username,
                         'text': text_element.inner_text() if text_element else "",
                         'timestamp': timestamp_element.get_attribute('datetime') if timestamp_element else "",
-                        'screenshot': str(screenshot_path),
+                        'screenshot': str(screenshot_path.relative_to(output_path.parent)),
                         'permalink': f"https://x.com/{tweet_username}/status/{tweet_id}"
                     })
+                    pbar.update(1)  # Update progress bar
                     if len(likes) >= max_likes:
                         break
             
@@ -72,6 +77,7 @@ def scrape_likes(username, cookies, output_path, max_likes=100):
             last_height = new_height
         
         browser.close()
+        pbar.close()  # Close progress bar
     
     # Ensure the output directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -85,7 +91,7 @@ def scrape_likes(username, cookies, output_path, max_likes=100):
     with open(markdown_path, 'w', encoding='utf-8') as f:
         for like in likes:
             f.write(f"![Tweet by {like['username']}]({like['screenshot']})\n\n")
-            f.write(f"[Permalink to tweet](https://x.com/{like['username']}/status/{like['id']})\n\n")
+            f.write(f"[Permalink to tweet]({like['permalink']})\n\n")
             f.write("---\n\n")
     
     # Update environment variable with most recent tweet id/timestamp
