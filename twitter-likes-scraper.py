@@ -1,11 +1,11 @@
 import os
+import re
 import json
 import argparse
+from tqdm import tqdm
+from dotenv import load_dotenv
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from dotenv import load_dotenv
-import re
-from tqdm import tqdm
 
 def scrape_likes(username, cookies, output_path, max_likes=100):
     with sync_playwright() as p:
@@ -132,4 +132,5 @@ def main():
     scrape_likes(args.username, cookies, args.output, args.max_likes)
 
 if __name__ == '__main__':
+    load_dotenv()
     main()
